@@ -136,6 +136,7 @@ Route::prefix('maintenance')->name('maintenance.')->group(function () {
     Route::get('/jadwal-dinas/create', [JadwalDinasController::class, 'create'])->name('jadwal_dinas.create');
     Route::post('/jadwal-dinas/store', [JadwalDinasController::class, 'store'])->name('jadwal_dinas.store');
     Route::post('/jadwal-dinas/import', [JadwalDinasController::class, 'import'])->name('jadwal_dinas.import');
+    Route::get('/jadwal-dinas/riwayat', [JadwalDinasController::class, 'riwayat'])->name('jadwal_dinas.riwayat');
     Route::post(
         '/master-shift/store',
         [MasterShiftController::class, 'store']

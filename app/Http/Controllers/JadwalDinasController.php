@@ -68,6 +68,79 @@ class JadwalDinasController extends Controller
         );
     }
 
+    /*
+    |-----------------------------------------------------------------
+    | RIWAYAT JADWAL DINAS (BARU)
+    |-----------------------------------------------------------------
+    | Tabel flat: 1 baris = 1 entry (nama, tanggal, shift, jam),
+    | berbeda dari tampilan kalender per minggu/bulan di index().
+    | Bisa difilter per nama petugas, rentang tanggal, dan kode shift.
+    | Akses: sama seperti index() -> semua role yang bisaLihat().
+    */
+    public function riwayat(Request $request)
+    {
+        if (!$this->bisaLihat()) {
+            return redirect()->route('dashboard')
+                ->with('error', 'Anda tidak memiliki akses ke halaman Riwayat Jadwal Dinas.');
+        }
+
+        $query = JadwalDinas::query();
+
+        // Filter nama petugas (partial match, case-insensitive)
+        if ($request->filled('nama')) {
+            $query->where('nama', 'like', '%' . $request->nama . '%');
+        }
+
+        // Filter rentang tanggal
+        if ($request->filled('tanggal_mulai') && $request->filled('tanggal_selesai')) {
+            $query->whereBetween('tanggal', [
+                $request->tanggal_mulai,
+                $request->tanggal_selesai,
+            ]);
+        } elseif ($request->filled('tanggal_mulai')) {
+            $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
+        } elseif ($request->filled('tanggal_selesai')) {
+            $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
+        }
+
+        // Filter kode shift
+        if ($request->filled('shift_id')) {
+            $query->where('shift_id', $request->shift_id);
+        }
+
+        // Default: tampilkan riwayat 30 hari terakhir s/d hari ini jika
+        // belum ada filter tanggal apapun, supaya tabel tidak langsung
+        // memuat seluruh histori sejak awal yang bisa sangat panjang.
+        $adaFilterTanggal = $request->filled('tanggal_mulai') || $request->filled('tanggal_selesai');
+
+        if (!$adaFilterTanggal) {
+            $query->whereBetween('tanggal', [
+                Carbon::now()->subDays(30)->format('Y-m-d'),
+                Carbon::now()->format('Y-m-d'),
+            ]);
+        }
+
+        $riwayatJadwal = $query->orderBy('tanggal', 'desc')
+            ->orderBy('nama')
+            ->paginate(25)
+            ->withQueryString();
+
+        // Daftar nama unik untuk dropdown filter (datalist)
+        $daftarNama = JadwalDinas::select('nama')
+            ->distinct()
+            ->orderBy('nama')
+            ->pluck('nama');
+
+        $masterShifts = MasterShift::orderBy('kode_shift')->get();
+
+        return view('jadwal_dinas.riwayat', compact(
+            'riwayatJadwal',
+            'daftarNama',
+            'masterShifts',
+            'adaFilterTanggal'
+        ));
+    }
+
     public function create()
     {
         if (!$this->bisaInput()) {
@@ -135,7 +208,7 @@ class JadwalDinasController extends Controller
 
     /*
     |-----------------------------------------------------------------
-    | IMPORT JADWAL DINAS DARI CSV / XLSX (BARU)
+    | IMPORT JADWAL DINAS DARI CSV / XLSX
     |-----------------------------------------------------------------
     | Format kolom file (header baris pertama): nama | tanggal | shift
     | - 'shift' wajib cocok dengan kode_shift di Master Shift.

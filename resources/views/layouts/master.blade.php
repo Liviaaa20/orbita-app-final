@@ -533,6 +533,16 @@
             </a>
         </li>
 
+                {{-- BARU: Riwayat Jadwal Dinas - tabel flat, akses sama seperti Lihat Jadwal --}}
+        <li class="nav-item">
+            <a href="{{ route('jadwal_dinas.riwayat') }}"
+               class="nav-link px-4 {{ request()->is('jadwal-dinas/riwayat') ? 'active' : '' }}">
+
+                <i class="far fa-circle nav-icon text-secondary"></i>
+                <p>Riwayat Jadwal</p>
+            </a>
+        </li>
+
         {{-- Kepala Kelompok & Koordinator --}}
        @if($isAdmin || $isKepalaKelompok)
         <li class="nav-item">
